@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Online Clothing Store</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: url('https://images.unsplash.com/photo-1602810312280-03b2a6a7a9f1?q=80&w=1600&auto=format&fit=crop')
+        no-repeat center center fixed;
+      background-size: cover;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .container {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 20px;
+      border-radius: 10px;
+      width: 400px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+      overflow-y: auto;
+      max-height: 90vh;
+    }
+    h2 {
+      text-align: center;
+    }
+    input,
+    select,
+    button {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      background-color: black;
+      color: white;
+      cursor: pointer;
+    }
+    .hidden {
+      display: none;
+    }
+    .product {
+      background: white;
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+    .product img {
+      width: 100%;
+      border-radius: 10px;
+    }
+    .cart-item,
+    .order-item {
+      border-bottom: 1px solid #ccc;
+      padding: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- SIGNUP PAGE -->
+  <div class="container" id="signupPage">
+    <h2>Sign Up</h2>
+    <select id="role">
+      <option value="customer">Customer</option>
+      <option value="seller">Seller</option>
+      <option value="admin">Admin</option>
+    </select>
+    <input type="text" id="fullName" placeholder="Full Name" required />
+    <input type="email" id="email" placeholder="Email" required />
+    <input type="tel" id="phone" placeholder="Phone Number" required />
+    <input type="number" id="age" placeholder="Age" required />
+    <input type="date" id="birthday" required />
+    <input type="password" id="password" placeholder="Password" required />
+    <button onclick="signUp()">Sign Up</button>
+    <button onclick="showPage('loginPage')">Already have an account? Log In</button>
+  </div>
+
+  <!-- LOGIN PAGE -->
+  <div class="container hidden" id="loginPage">
+    <h2>Log In</h2>
+    <input type="email" id="loginEmail" placeholder="Email" />
+    <input type="password" id="loginPassword" placeholder="Password" />
+    <button onclick="login()">Log In</button>
+    <button onclick="showPage('signupPage')">Back</button>
+  </div>
+
+  <!-- CUSTOMER HOME -->
+  <div class="container hidden" id="homePage">
+    <h2>Products</h2>
+    <div id="productList"></div>
+    <button onclick="viewCart()">View My Cart</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <!-- CART -->
+  <div class="container hidden" id="cartPage">
+    <h2>My Cart</h2>
+    <div id="cartItems"></div>
+    <h3>Total: ₱<span id="totalPrice">0</span></h3>
+    <label for="payment">Choose Payment:</label>
+    <select id="payment">
+      <option>GCash</option>
+      <option>PayPal</option>
+      <option>Credit Card</option>
+      <option>PayMaya</option>
+    </select>
+    <button onclick="placeOrder()">Place Order</button>
+  </div>
+
+  <!-- SELLER DASHBOARD -->
+  <div class="container hidden" id="sellerPage">
+    <h2>Seller Dashboard</h2>
+    <div id="orderList"></div>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <!-- ADMIN DASHBOARD -->
+  <div class="container hidden" id="adminPage">
+    <h2>Admin Dashboard</h2>
+    <h3>Registered Users</h3>
+    <div id="userList"></div>
+    <h3>All Orders</h3>
+    <div id="adminOrderList"></div>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <script>
+    const products = [
+      {
+        name: 'T-Shirt',
+        price: 299,
+        image:
+          'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?q=80&w=800'
+      },
+      {
+        name: 'Long Sleeve',
+        price: 399,
+        image:
+          'https://images.unsplash.com/photo-1520975912016-6a2d8b1edb2b?q=80&w=800'
+      },
+      {
+        name: 'Oversized Shirt',
+        price: 449,
+        image:
+          'https://images.unsplash.com/photo-1520975912016-1d8e6c1f4f4f?q=80&w=800'
+      },
+      {
+        name: 'Jeans',
+        price: 899,
+        image:
+          'https://images.unsplash.com/photo-1514996937319-344454492b37?q=80&w=800'
+      },
+      {
+        name: 'Hoodie',
+        price: 699,
+        image:
+          'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?q=80&w=800'
+      }
+    ];
+
+    let users = JSON.parse(localStorage.getItem('users') || '[]');
+    let currentUser = null;
+    let cart = [];
+    let orders = JSON.parse(localStorage.getItem('orders') || '[]');
+
+    function showPage(id) {
+      document.querySelectorAll('.container').forEach(div => div.classList.add('hidden'));
+      document.getElementById(id).classList.remove('hidden');
+    }
+
+    // SIGN UP
+    function signUp() {
+      const role = document.getElementById('role').value;
+      const fullName = document.getElementById('fullName').value;
+      const email = document.getElementById('email').value;
+      const phone = document.getElementById('phone').value;
+      const age = parseInt(document.getElementById('age').value);
+      const birthday = document.getElementById('birthday').value;
+      const password = document.getElementById('password').value;
+
+      if (age < 18) {
+        alert('You must be at least 18 years old to sign up.');
+        return;
+      }
+
+      users.push({ role, fullName, email, phone, age, birthday, password });
+      localStorage.setItem('users', JSON.stringify(users));
+
+      alert('Sign up successful! Please log in.');
+      showPage('loginPage');
+    }
+
+    // LOGIN
+    function login() {
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      const user = users.find(u => u.email === email && u.password === password);
+
+      if (!user) {
+        alert('Invalid credentials');
+        return;
+      }
+
+      currentUser = user;
+      if (user.role === 'customer') {
+        showPage('homePage');
+        loadProducts();
+      } else if (user.role === 'seller') {
+        showPage('sellerPage');
+        loadOrders();
+      } else if (user.role === 'admin') {
+        showPage('adminPage');
+        loadAdminData();
+      }
+    }
+
+    // LOGOUT
+    function logout() {
+      currentUser = null;
+      showPage('loginPage');
+    }
+
+    // LOAD PRODUCTS
+    function loadProducts() {
+      const list = document.getElementById('productList');
+      list.innerHTML = '';
+      products.forEach(p => {
+        const div = document.createElement('div');
+        div.classList.add('product');
+        div.innerHTML = `
+          <img src="${p.image}" alt="${p.name}">
+          <h3>${p.name}</h3>
+          <p>₱${p.price}</p>
+          <label>Color:</label>
+          <select id="color-${p.name}">
+            <option>Black</option><option>Yellow</option><option>Red</option>
+            <option>Green</option><option>Blue</option><option>Pink</option>
+          </select>
+          <label>Size:</label>
+          <select id="size-${p.name}">
+            <option>Small</option><option>Medium</option><option>Large</option>
+            <option>XL</option><option>XXL</option>
+          </select>
+          <button onclick="addToCart('${p.name}', ${p.price})">Add to Cart</button>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    function addToCart(name, price) {
+      const color = document.getElementById(`color-${name}`).value;
+      const size = document.getElementById(`size-${name}`).value;
+      cart.push({ name, price, color, size });
+      alert(`${name} added to cart.`);
+    }
+
+    // CART
+    function viewCart() {
+      showPage('cartPage');
+      const cartItems = document.getElementById('cartItems');
+      cartItems.innerHTML = '';
+      let total = 0;
+
+      cart.forEach(item => {
+        total += item.price;
+        const div = document.createElement('div');
+        div.classList.add('cart-item');
+        div.textContent = `${item.name} (${item.color}, ${item.size}) - ₱${item.price}`;
+        cartItems.appendChild(div);
+      });
+      document.getElementById('totalPrice').textContent = total;
+    }
+
+    // PLACE ORDER
+    function placeOrder() {
+      const payment = document.getElementById('payment').value;
+      const order = {
+        user: currentUser.fullName,
+        items: [...cart],
+        payment,
+        date: new Date().toLocaleString()
+      };
+      orders.push(order);
+      localStorage.setItem('orders', JSON.stringify(orders));
+      alert(`Order placed successfully using ${payment}!`);
+      cart = [];
+      showPage('homePage');
+    }
+
+    // SELLER
+    function loadOrders() {
+      const list = document.getElementById('orderList');
+      list.innerHTML = '';
+      if (orders.length === 0) {
+        list.innerHTML = '<p>No orders yet.</p>';
+        return;
+      }
+      orders.forEach((o, i) => {
+        const div = document.createElement('div');
+        div.classList.add('order-item');
+        div.innerHTML = `
+          <strong>Order #${i + 1}</strong><br>
+          User: ${o.user}<br>
+          Payment: ${o.payment}<br>
+          Date: ${o.date}<br>
+          Items:<br>
+          ${o.items.map(it => `${it.name} (${it.color}, ${it.size}) - ₱${it.price}`).join('<br>')}
+          <hr>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    // ADMIN
+    function loadAdminData() {
+      const userList = document.getElementById('userList');
+      userList.innerHTML = '';
+      users.forEach((u, i) => {
+        const div = document.createElement('div');
+        div.innerHTML = `${i + 1}. [${u.role}] ${u.fullName} - ${u.email} 
+          <button onclick="deleteUser(${i})">Delete</button>`;
+        userList.appendChild(div);
+      });
+
+      const adminOrderList = document.getElementById('adminOrderList');
+      adminOrderList.innerHTML = '';
+      orders.forEach((o, i) => {
+        const div = document.createElement('div');
+        div.classList.add('order-item');
+        div.innerHTML = `<strong>Order #${i + 1}</strong> by ${o.user}<br>
+        ${o.items.map(it => `${it.name} (${it.color}, ${it.size})`).join(', ')}<br>
+        Payment: ${o.payment}<br>
+        <button onclick="deleteOrder(${i})">Delete</button>`;
+        adminOrderList.appendChild(div);
+      });
+    }
+
+    function deleteUser(i) {
+      if (confirm('Delete this user?')) {
+        users.splice(i, 1);
+        localStorage.setItem('users', JSON.stringify(users));
+        loadAdminData();
+      }
+    }
+
+    function deleteOrder(i) {
+      if (confirm('Delete this order?')) {
+        orders.splice(i, 1);
+        localStorage.setItem('orders', JSON.stringify(orders));
+        loadAdminData();
+      }
+    }
+
+    // Default
+    showPage('signupPage');
+  </script>
+</body>
+</html>
